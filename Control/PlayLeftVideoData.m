@@ -1,9 +1,15 @@
-function  PlayVideoData(AxesHandle, playHandle, handles, VideoName)
+function  PlayLeftVideoData(AxesHandle, playHandle, handles, VideoName)
+% 设置同步操作变量.
+global LeftFrameRunning;
+global leftOver;
+
+
+%获得左右视频标签.
+if(ishandle(AxesHandle) == 1)
+    LeftFrameRunning = 1;
+end
+
 %获取视频的数据结构.
-global curFrame;
-curFrame = 1;
-global over;
-over = 0;
 VideoMedia = VideoReader(VideoName);
 nFrames = VideoMedia.NumberOfFrames;
 videoHeight = VideoMedia.Height;
@@ -16,13 +22,12 @@ AxesHeight = floor(Position(4));
 mov(1:nFrames) = ...
 struct('cdata', zeros(AxesHeight, AxesWidth, 3, 'uint8'));
 
-
 % 载入帧数据.
 h1 = floor((AxesHeight - floor(AxesWidth * videoHeight / videoWidth))/2);
 h2 = floor(AxesWidth * videoHeight / videoWidth);
 
-global leftClose;
-if (leftClose == 1)
+
+if (leftOver == 1)
     return;
 end
 % 缓冲真数据.
@@ -42,35 +47,32 @@ end
 
 
 % 以原始视频的帧率进行一次回放.
-WaitBarControl(0,'',handles.LeftVideoProgress, handles.VideoGrading);
+LeftWaitBarControl(0,'',handles.LeftVideoProgress, handles.VideoGrading);
 for i = 1 : nFrames
-    if (leftClose == 1)
+    if(ishandle(AxesHandle) == 1)
+        if (leftOver == 1)
+            return;
+        end
+        axes(AxesHandle);
+    else
         return;
     end
-    axes(AxesHandle);
-    if (leftClose == 1)
+    if(ishandle(AxesHandle) == 1)
+        if (leftOver == 1)
+            return;
+        end
+        imshow(mov(i).cdata);
+    else
         return;
     end
-    imshow(mov(i).cdata);
-    if(leftClose == 1)
-        return;
-    end
-    WaitBarControl(i/nFrames, [num2str(floor(i*100/nFrames)),'%'],handles.LeftVideoProgress, handles.VideoGrading);
+    LeftWaitBarControl(i/nFrames, [num2str(floor(i*100/nFrames)),'%'],handles.LeftVideoProgress, handles.VideoGrading);
 end
 
-% t = timer('Period', 0.002, 'TasksToExecute', nFrames, 'ExecutionMode','fixedRate', 'TimerFcn', {@onTimer, mov, AxesHandle, nFrames, handles});
-% start(t);
-% stop(t);
+% 视频完整播放结束时设置同步变量.
 set(playHandle,'string','>>')
-over = 1;
+leftOver = 0;
+LeftFrameRunning = 0;
 
-
-% function onTimer(timerHandle, event, mov, handle, nFrames, handles)
-%     axes(handle);
-%     imshow(mov(timerHandle.TasksExecuted).cdata);  
-%     WaitBarControl(timerHandle.TasksExecuted - 1/nFrames, [num2str(floor(timerHandle.TasksExecuted*100/nFrames)),'%'],handles.LeftVideoProgress, handles.VideoGrading);
-% end
-% end
 
 
 
