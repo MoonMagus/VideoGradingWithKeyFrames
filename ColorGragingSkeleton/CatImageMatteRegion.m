@@ -5,7 +5,7 @@ dmA = mat2gray(mA,[0 255]);
 bmA = im2bw(dmA,0.5);
 rmA = double(repmat(bmA,[1 1 3]));
 rA = im2uint8(dA.*rmA);
-imshow(rA);
+%imshow(rA);
 
 dB = im2double(ImageB);
 mB = 255 - Matte;

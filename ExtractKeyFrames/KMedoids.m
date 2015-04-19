@@ -7,7 +7,7 @@ function [BestPointLabels, BestMedoids, MedoidsSize] = KMedoids(MetricMatrix, Da
 %    Data是 [2 x NumFrames]矩阵. Data(1):Covariance, Data(2):Means  
 %    K是聚类的数目. 
 %-------------------------------------------------------------------------  
-  
+global  StatusBarHandle;
 [~,Num] = size(Data);   
       
 % 选取初始点   
@@ -64,7 +64,7 @@ for CurrentRepeat = 1:RepeatTimes
        RepeatTimes_SuccessPoints_Labels(CurrentRepeat,:) = PointLabels;  
        RepeatTimes_KMedoids(CurrentRepeat,:) = UpdatedMedoids;  
     end      
-    
+    FreshListBox(['第' num2str(CurrentRepeat) '次聚类结束'], StatusBarHandle);
     disp(['第' num2str(CurrentRepeat) '次聚类结束'])
 end
 

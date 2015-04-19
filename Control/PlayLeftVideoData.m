@@ -30,7 +30,7 @@ h2 = floor(AxesWidth * videoHeight / videoWidth);
 if (leftOver == 1)
     return;
 end
-% 缓冲真数据.
+% 缓冲帧数据.
 matName = strcat('VideoData\', VideoName(1:end - 4),'.mat');
 fid = fopen(matName);
 if(fid ~= -1)

@@ -1,4 +1,4 @@
-function C = ExtractLABBandFeature(RGBImageName)
+function [C, HISTDATA] = ExtractLABBandFeature(RGBImageName)
 % 将输入的RGB图像依据亮度分离成不同的数据带.
 
 RGBImage = imread(RGBImageName);
@@ -77,7 +77,7 @@ C.MM = MM;
 C.EM = EM;
 C.MH = MH;
 C.EH = EH;
-
+HISTDATA = ChannelL;
 % MS,ES,MM,EM,MH,EH
 
 
