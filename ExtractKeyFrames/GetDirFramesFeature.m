@@ -1,6 +1,6 @@
-function [TargetKeyframesFeature, HISTDATAs] = GetDirFramesFeature(ForeOrBack, OpenReverse)
+function [TargetKeyframesFeature, HISTDATAs, filenames] = GetDirFramesFeature(ForeOrBack, OpenReverse)
 global TargetForeMatteOpen;
-global BackMatteHasBeenAdd;
+global TargetBackMatteOpen;
 % 获得制定目录下的关键帧特征值.
 if(ForeOrBack == 1)
     DirName = 'KeyFrames/TargetForeKeyFrames/';
@@ -9,7 +9,7 @@ if(ForeOrBack == 1)
 else
     DirName = 'KeyFrames/TargetBackKeyFrames/';
     DirMatteName = 'KeyFrames/TargetBackMatteKeyFrames/';
-    open = BackMatteHasBeenAdd;
+    open = TargetBackMatteOpen;
 end
 [nFrames, filenames] = GetFilenames(DirName);
 TargetKeyframesFeature(1, nFrames) = struct('MS',[],'ES',[],'MM',[],'EM',[],'MH',[],'EH',[]);

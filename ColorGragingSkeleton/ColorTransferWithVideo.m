@@ -152,6 +152,7 @@ F.MH = MH;
 F.EH = EH;
 
 index = FindTheNeededKeyFrame(F, TargetKeyframes, nFrames);
+R.index = index;
 TF = TargetKeyframes(index);
 HISTDATA = HISTDATAs(index).HISTDATA;
 %进行辐照度拉伸.

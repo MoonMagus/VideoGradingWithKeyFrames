@@ -1,9 +1,8 @@
 function VideoStatusSwitch(handles)
 global SourceMatteOpen;
 global SourceSynOpen;
-global TargetForeMatteOpen;
-global TargetBackMatteOpen;
-global TargetSynOpen;
+SourceMatteOpen = get(handles.OpenSourceMatte, 'Value');
+SourceSynOpen = get(handles.SourceSyn, 'Value');
 if(SourceMatteOpen == 0)
     OpenAllVideoFormat(handles);
     set(handles.OutputSourceForeVideo, 'Enable', 'off');

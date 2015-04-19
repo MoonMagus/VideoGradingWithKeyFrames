@@ -1,14 +1,16 @@
 function ColorTransferWithinVideo()
 global SourceMatteOpen;
 global SourceSynOpen;
+global TargetForeMatteOpen;
+global TargetBackGradingOpen;
 global TargetBackMatteOpen;
+
 global SourceVideoName;
 global SourceMatteName;
+
 global ForeStruct;
 global BackStruct;
 global ResultStruct;
-global TargetForeMatteOpen;
-global BackMatteHasBeenAdd;
 global StatusBarHandle;
 global stopRendering;
 global StatusProgressBarHandle;
@@ -30,34 +32,38 @@ set(StatusProgressBarHandle,...
 xline = [100 0 0 100 100];
 yline = [0 0 1 1 0];
 line(xline,yline,'EraseMode','none','Color','k');
+
+% 提取目标前景关键帧.
 if(OpenUpdateForeKeyFrames == 1)
-    if(TargetForeMatteOpen == 1)
-        pause(0.001);
-        if(stopRendering == 1)
-            stopRendering = 0;
-            disp('渲染视频帧被临时终止...');
-            FreshListBox('渲染视频帧被临时终止...', StatusBarHandle);
-            return;
-        end
+    pause(0.001);
+    if(stopRendering == 1)
+        stopRendering = 0;
+        disp('渲染视频帧被临时终止...');
+        FreshListBox('渲染视频帧被临时终止...', StatusBarHandle);
+        return;
+    end
+    if(TargetForeMatteOpen == 1)       
         ExtractTargetKeyFrames(1, 1);
     else
         ExtractTargetKeyFrames(1, 0);
     end
 end
-pause(0.001);
-if(stopRendering == 1)
-    stopRendering = 0;
-    disp('渲染视频帧被临时终止...');
-    FreshListBox('渲染视频帧被临时终止...', StatusBarHandle);
-    return;
-end
+% 提取目标背景关键帧.
 if(OpenUpdateBackKeyFrames == 1)
-    if(TargetBackMatteOpen == 1 && BackMatteHasBeenAdd == 1)
+    pause(0.001);
+    if(stopRendering == 1)
+        stopRendering = 0;
+        disp('渲染视频帧被临时终止...');
+        FreshListBox('渲染视频帧被临时终止...', StatusBarHandle);
+        return;
+    end
+    if(TargetBackGradingOpen == 1 && TargetBackMatteOpen == 1)
         ExtractTargetKeyFrames(0, 1);
-    elseif(TargetBackMatteOpen == 1 && BackMatteHasBeenAdd == 0)
+    elseif(TargetBackMatteOpen == 1 && TargetBackMatteOpen == 0)
         ExtractTargetKeyFrames(0, 0);
     end
 end
+
 pause(0.001);
 if(stopRendering == 1)
     stopRendering = 0;
@@ -66,7 +72,7 @@ if(stopRendering == 1)
     return;
 end
 FreshListBox('开始提取目标前景关键帧特征...', StatusBarHandle);
-[F1, H1] = GetDirFramesFeature(1,OpenForeMatteReverseSwitch);
+[F1, H1, Filenames1] = GetDirFramesFeature(1,OpenForeMatteReverseSwitch);
 n1 = size(F1,2); 
 pause(0.001);
 if(stopRendering == 1)
@@ -77,11 +83,11 @@ if(stopRendering == 1)
 end
 if(SourceSynOpen == 1)
     FreshListBox('开始提取目标背景关键帧特征...', StatusBarHandle);
-    if(TargetBackMatteOpen == 1)
-        [F2, H2] = GetDirFramesFeature(0,OpenBackMatteReverseSwitch);
+    if(TargetBackGradingOpen == 1)
+        [F2, H2, Filenames2] = GetDirFramesFeature(0,OpenBackMatteReverseSwitch);
         n2 = size(F2,2);
     else
-        [F3, H3] = GetDirFramesFeature(1,1 - OpenForeMatteReverseSwitch);
+        [F3, H3, Filenames3] = GetDirFramesFeature(1,1 - OpenForeMatteReverseSwitch);
         n3 = size(F3,2); 
     end
 end
@@ -95,7 +101,7 @@ if(stopRendering == 1)
     FreshListBox('渲染视频帧被临时终止...', StatusBarHandle);
     return;
 end
-FreshListBox('开始提取原视频帧序列...', StatusBarHandle);
+FreshListBox('开始提取源视频帧序列...', StatusBarHandle);
 [SourceVideo, nFrames] = GetVideoData(strcat('Video\StartVideo\',SourceVideoName));
 pause(0.001);
 if(stopRendering == 1)
@@ -105,7 +111,7 @@ if(stopRendering == 1)
     return;
 end
 if(SourceMatteOpen == 1)
-    FreshListBox('开始提取目标前景蒙版关键帧特征...', StatusBarHandle);
+    FreshListBox('开始提取源视频蒙版帧序列...', StatusBarHandle);
     SourceMatteVideo = GetVideoData(strcat('Video\StartVideo\',SourceMatteName));
 else
     SourceMatteVideo(1:nFrames) = ...
@@ -124,7 +130,7 @@ for i = 1 : nFrames
     ForeStruct = ColorTransferWithVideo(SourceVideo(i).cdata, SourceMatteOpen, SourceMatteVideo(i).cdata, F1, n1, H1, OpenFilter, 0);
     if(SourceSynOpen  == 1)
         SourceBackMatte = 255 - SourceMatteVideo(i).cdata;
-        if(TargetBackMatteOpen == 0)
+        if(TargetBackGradingOpen == 0)
              BackStruct =  ColorTransferWithVideo(SourceVideo(i).cdata, 1, SourceBackMatte, F3, n3, H3, OpenFilter, 0);
         else
              BackStruct =  ColorTransferWithVideo(SourceVideo(i).cdata, 1, SourceBackMatte, F2, n2, H2, OpenFilter, 0);
@@ -153,6 +159,15 @@ for i = 1 : nFrames
     SaveRenderedVideoSlice(strcat('第',num2str(i),'帧.jpg'));
     StatusWaitBarControl(i/nFrames, StatusProgressBarHandle, figHandle);
     FreshListBox(strcat('正在渲染第',num2str(i),'帧.jpg'), StatusBarHandle);
+    FreshListBox(strcat('前景关键帧为：',char(Filenames1(ForeStruct.index))), StatusBarHandle);
+    if(SourceSynOpen  == 1)
+        if(TargetBackGradingOpen == 0)
+             FreshListBox(strcat('背景关键帧为：',char(Filenames3(BackStruct.index))), StatusBarHandle);
+        else
+             FreshListBox(strcat('背景关键帧为：',char(Filenames2(BackStruct.index))), StatusBarHandle);
+        end
+    end
+    FreshListBox(strcat('--------------------------------------'), StatusBarHandle);
     disp(strcat('第',num2str(i),'帧.jpg'));
 end
 FreshListBox('开始整合渲染帧序列......', StatusBarHandle);

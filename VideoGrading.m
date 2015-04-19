@@ -25,10 +25,10 @@ end
 
 
 %% 在ColorGrading可视化之前执行.
-global LeftFrameRunning;
-global leftOver;
-global RightFrameRunning;
-global rightOver;
+% global LeftFrameRunning;
+% global leftOver;
+% global RightFrameRunning;
+% global rightOver;
 global SourceVideoName;
 global SourceMatteName;
 global TargetForeVideoName;
@@ -41,12 +41,12 @@ global SourceSynOpen;
 global TargetForeMatteOpen;
 global TargetBackMatteOpen;
 global TargetSynOpen;
+global TargetBackGradingOpen;
 global ForeStruct;
 global BackStruct;
 global ResultStruct;
 global UiStatus;
 global VOStatus;
-global BackMatteHasBeenAdd;
 global stopRendering;
 global StatusBarHandle;
 global StatusProgressBarHandle;
@@ -60,15 +60,24 @@ global OpenUpdateForeKeyFrames;
 global OpenUpdateBackKeyFrames;
 global OpenForeMatteReverseSwitch;
 global OpenBackMatteReverseSwitch;
+global movLeft;
+global movRight;
+global leftLastVideoName;
+global rightLastVideoName;
+global TargetBackGradingOpen;
 function VideoGrading_OpeningFcn(hObject, eventdata, handles, varargin)
-global LeftFrameRunning;
-LeftFrameRunning = 0;
-global leftOver;
-leftOver = 0;
-global RightFrameRunning;
-RightFrameRunning = 0;
-global rightOver;
-rightOver = 0;
+% global LeftFrameRunning;
+% LeftFrameRunning = 0;
+% global leftOver;
+% leftOver = 0;
+% global RightFrameRunning;
+% RightFrameRunning = 0;
+% global rightOver;
+% rightOver = 0;
+global leftLastVideoName;
+leftLastVideoName = '';
+global rightLastVideoName;
+rightLastVideoName = '';
 global SourceVideoName;
 SourceVideoName = '';
 global SourceMatteName;
@@ -149,21 +158,21 @@ line(xline,yline,'EraseMode','none','Color','k');
 %% 填充预览窗口和下拉菜单.
 % 填充预览窗口.
 function FillPreviewWindow(hObject, AxesHandle, handles, curPopMenu)
-global leftOver;
-global LeftFrameRunning;
-global rightOver;
-global RightFrameRunning;
-%获得左右视频标签.
-if(ishandle(AxesHandle) == 1)
-    if(1 == strcmp(curPopMenu, 'left'))
-        leftOver = 0; 
-        LeftFrameRunning = 0;
-    else
-        rightOver = 0;
-        RightFrameRunning = 0;
-    end
-end
-set(handles.LeftPlay, 'string','>>')
+% global leftOver;
+% global LeftFrameRunning;
+% global rightOver;
+% global RightFrameRunning;
+% %获得左右视频标签.
+% if(ishandle(AxesHandle) == 1)
+%     if(1 == strcmp(curPopMenu, 'left'))
+%         leftOver = 0; 
+%         LeftFrameRunning = 0;
+%     else
+%         rightOver = 0;
+%         RightFrameRunning = 0;
+%     end
+% end
+set(handles.LeftPlay, 'string','Play')
 ListName = get(hObject,'UserData');
 CurrentVideo = char(ListName(get(hObject,'Value')));
 VideoMedia = VideoReader(strcat('Video\StartVideo\',CurrentVideo));
@@ -238,107 +247,136 @@ FillPopMemuData(hObject);
 %% 设置播放按钮.
 % 执行左方视频播放暂停.
 function LeftPlay_Callback(hObject, eventdata, handles)
-global LeftFrameRunning;
-global leftOver;
-if( LeftFrameRunning == 0)
-    ListName = get(handles.SourceVideoMenu, 'UserData');
-    CurrentVideo = char(ListName(get(handles.SourceVideoMenu, 'Value')));
+% global LeftFrameRunning;
+% global leftOver;
+% if( LeftFrameRunning == 0)
+% global StatusBarHandle;
+UIStatusSwitch(1, handles);
+set(handles.Render, 'Enable', 'off');
+set(handles.Stop, 'Enable', 'off');
+pause(0.001);
+ListName = get(handles.SourceVideoMenu, 'UserData');
+CurrentVideo = char(ListName(get(handles.SourceVideoMenu, 'Value')));
+if(ishandle(hObject) == 1)
     set(hObject,'string','| |')
-    PlayLeftVideoData(handles.SourceVideoAxes, hObject, handles, CurrentVideo);
 end
-PausePlay(hObject, handles.VideoGrading);
-if(leftOver == 1)
-    if(ishandle(hObject))
-        set(hObject,'string','>>')
-        LeftFrameRunning = 0;
-    else
-        return;
-    end
+PlayLeftVideoData(handles.SourceVideoAxes, hObject, handles, CurrentVideo);
+if(ishandle(handles.LeftPlay) == 1)
+    set(handles.LeftPlay,'string','Play')
 end
+if(ishandle(handles.VideoGrading) == 1)
+    UIStatusSwitch(0, handles);
+    set(handles.Render, 'Enable', 'on');
+    set(handles.Stop, 'Enable', 'on');
+end
+% end
+%PausePlay(hObject, handles.VideoGrading);
+% if(leftOver == 1)
+%     if(ishandle(hObject))
+%         set(hObject,'string','>>')
+%         LeftFrameRunning = 0;
+%     else
+%         return;
+%     end
+% end
 % 执行右方视频播放暂停.
 function RightPlay_Callback(hObject, eventdata, handles)
-global RightFrameRunning;
-global rightOver;
-if( RightFrameRunning == 0)
-    ListName = get(handles.TargetVideoMenu, 'UserData');
-    CurrentVideo = char(ListName(get(handles.TargetVideoMenu, 'Value')));
+% global RightFrameRunning;
+% global rightOver;
+% if( RightFrameRunning == 0)
+UIStatusSwitch(1, handles);
+set(handles.Render, 'Enable', 'off');
+set(handles.Stop, 'Enable', 'off');
+pause(0.001);
+ListName = get(handles.TargetVideoMenu, 'UserData');
+CurrentVideo = char(ListName(get(handles.TargetVideoMenu, 'Value')));
+if(ishandle(hObject) == 1)
     set(hObject,'string','| |')
-    PlayRightVideoData(handles.TargetVideoAxes, hObject, handles, CurrentVideo);
 end
-PausePlay(hObject, handles.VideoGrading);
-if(rightOver == 1)
-    if(ishandle(hObject))
-        set(hObject,'string','>>')
-        RightFrameRunning = 0;
-    else
-        return;
-    end
+PlayRightVideoData(handles.TargetVideoAxes, hObject, handles, CurrentVideo);
+if(ishandle(handles.RightPlay) == 1)
+    set(handles.RightPlay,'string','Play')
 end
+if(ishandle(handles.VideoGrading) == 1)
+    UIStatusSwitch(0, handles);
+    set(handles.Render, 'Enable', 'on');
+    set(handles.Stop, 'Enable', 'on');
+end
+% end
+% PausePlay(hObject, handles.VideoGrading);
+% if(rightOver == 1)
+%     if(ishandle(hObject))
+%         set(hObject,'string','>>')
+%         RightFrameRunning = 0;
+%     else
+%         return;
+%     end
+% end
 
 
-% 初始化左进度条.
-function LeftVideoProgress_CreateFcn(hObject, eventdata, handles)
-set(hObject,...
-    'Units','Pixels',...
-    'XTick',[],'YTick',[]);
-xline = [100 0 0 100 100];
-yline = [0 0 1 1 0];
-line(xline,yline,'EraseMode','none','Color','k');
-% 初始化右进度条.
-function RightVideoProgress_CreateFcn(hObject, eventdata, handles)
-set(hObject,...
-    'Units','Pixels',...
-    'XTick',[],'YTick',[]);
-xline = [100 0 0 100 100];
-yline = [0 0 1 1 0];
-line(xline,yline,'EraseMode','none','Color','k');
+% % 初始化左进度条.
+% function LeftVideoProgress_CreateFcn(hObject, eventdata, handles)
+% set(hObject,...
+%     'Units','Pixels',...
+%     'XTick',[],'YTick',[]);
+% xline = [100 0 0 100 100];
+% yline = [0 0 1 1 0];
+% line(xline,yline,'EraseMode','none','Color','k');
+% % 初始化右进度条.
+% function RightVideoProgress_CreateFcn(hObject, eventdata, handles)
+% set(hObject,...
+%     'Units','Pixels',...
+%     'XTick',[],'YTick',[]);
+% xline = [100 0 0 100 100];
+% yline = [0 0 1 1 0];
+% line(xline,yline,'EraseMode','none','Color','k');
 
 
-%%关闭视频窗口.
-% 关闭左侧视频窗口.
-function CloseLeft_Callback(hObject, eventdata, handles)
-global LeftFrameRunning;
-LeftFrameRunning = 0;
-global leftOver;
-leftOver = 1;
-uiresume(handles.VideoGrading);
-cla(handles.LeftVideoProgress);
-axes(handles.LeftVideoProgress);
-set(handles.LeftVideoProgress,...
-    'Units','Pixels',...
-    'XTick',[],'YTick',[]);
-xline = [100 0 0 100 100];
-yline = [0 0 1 1 0];
-line(xline,yline,'EraseMode','none','Color','k');
-cla(handles.SourceVideoAxes);
-axes(handles.SourceVideoAxes);
-set(handles.SourceVideoAxes,...
-    'Units','Pixels',...
-    'XTick',[],'YTick',[]);
-set(handles.SourceVideoAxes, 'Visible', 'on');
-uiresume(handles.VideoGrading);
+% %%关闭视频窗口.
+% % 关闭左侧视频窗口.
+% function CloseLeft_Callback(hObject, eventdata, handles)
+% global LeftFrameRunning;
+% LeftFrameRunning = 0;
+% global leftOver;
+% leftOver = 1;
+% uiresume(handles.VideoGrading);
+% cla(handles.LeftVideoProgress);
+% axes(handles.LeftVideoProgress);
+% set(handles.LeftVideoProgress,...
+%     'Units','Pixels',...
+%     'XTick',[],'YTick',[]);
+% xline = [100 0 0 100 100];
+% yline = [0 0 1 1 0];
+% line(xline,yline,'EraseMode','none','Color','k');
+% cla(handles.SourceVideoAxes);
+% axes(handles.SourceVideoAxes);
+% set(handles.SourceVideoAxes,...
+%     'Units','Pixels',...
+%     'XTick',[],'YTick',[]);
+% set(handles.SourceVideoAxes, 'Visible', 'on');
+% uiresume(handles.VideoGrading);
 % 关闭右侧视频窗口.
-function CloseRight_Callback(hObject, eventdata, handles)
-global RightFrameRunning;
-RightFrameRunning = 0;
-global rightOver;
-rightOver = 1;
-uiresume(handles.VideoGrading);
-cla(handles.RightVideoProgress);
-axes(handles.RightVideoProgress);
-set(handles.RightVideoProgress,...
-    'Units','Pixels',...
-    'XTick',[],'YTick',[]);
-xline = [100 0 0 100 100];
-yline = [0 0 1 1 0];
-line(xline,yline,'EraseMode','none','Color','k');
-cla(handles.TargetVideoAxes);
-axes(handles.TargetVideoAxes);
-set(handles.TargetVideoAxes,...
-    'Units','Pixels',...
-    'XTick',[],'YTick',[]);
-set(handles.TargetVideoAxes, 'Visible', 'on');
-uiresume(handles.VideoGrading);
+% function CloseRight_Callback(hObject, eventdata, handles)
+% global RightFrameRunning;
+% RightFrameRunning = 0;
+% global rightOver;
+% rightOver = 1;
+% uiresume(handles.VideoGrading);
+% cla(handles.RightVideoProgress);
+% axes(handles.RightVideoProgress);
+% set(handles.RightVideoProgress,...
+%     'Units','Pixels',...
+%     'XTick',[],'YTick',[]);
+% xline = [100 0 0 100 100];
+% yline = [0 0 1 1 0];
+% line(xline,yline,'EraseMode','none','Color','k');
+% cla(handles.TargetVideoAxes);
+% axes(handles.TargetVideoAxes);
+% set(handles.TargetVideoAxes,...
+%     'Units','Pixels',...
+%     'XTick',[],'YTick',[]);
+% set(handles.TargetVideoAxes, 'Visible', 'on');
+% uiresume(handles.VideoGrading);
 
 
 %% 提取左视频流中的关键帧.
@@ -376,15 +414,15 @@ set(handles.Render, 'Enable', 'on');
 set(handles.Stop, 'Enable', 'on');
 
 
-%% 执行系统资源释放.
-function LeftVideoProgress_DeleteFcn(hObject, eventdata, handles)
-global leftOver;
-leftOver = 1;
-uiresume(handles.VideoGrading);
-function SourceVideoAxes_DeleteFcn(hObject, eventdata, handles)
-global leftOver;
-leftOver = 1;
-uiresume(handles.VideoGrading);
+% %% 执行系统资源释放.
+% function LeftVideoProgress_DeleteFcn(hObject, eventdata, handles)
+% global leftOver;
+% leftOver = 1;
+% uiresume(handles.VideoGrading);
+% function SourceVideoAxes_DeleteFcn(hObject, eventdata, handles)
+% global leftOver;
+% leftOver = 1;
+% uiresume(handles.VideoGrading);
 
 
 %% 激活RadioButton.
@@ -435,45 +473,46 @@ end
 % 设置源蒙版开启状态.
 function OpenSourceMatte_Callback(hObject, eventdata, handles)
 global SourceMatteName;
-global SourceMatteOpen;
-global SourceSynOpen;
-global TargetForeMatteOpen;
-global TargetBackMatteOpen;
-global TargetSynOpen;
-SourceMatteOpen = get(handles.OpenSourceMatte, 'Value');
-SourceSynOpen = get(handles.SourceSyn, 'Value');
-TargetForeMatteOpen = get(handles.OpenTargetMatte, 'Value');
-TargetBackMatteOpen = get(handles.OpenBackMatte, 'Value');
-TargetSynOpen = get(handles.TargetSyn, 'Value');
-VideoStatusSwitch(handles);
+global TargetBackVideoName;
+global TargetBackMatteName;
 if(get(hObject, 'Value') == 1)
+    % 设置渲染选项状态.
+    set(handles.SourceSyn, 'Enable', 'on');
+    % 设置RadioButton.
     set(handles.SourceMatteButton, 'Enable', 'on');
+    % 设置渲染池状态.
     set(handles.SourceMatte, 'Enable', 'on');
-    if(SourceSynOpen == 0)
-        set(handles.OpenBackMatte, 'Enable', 'off');
-        set(handles.OpenBackMatte, 'Value', 0);
-        set(handles.TargetSyn, 'Enable', 'off');
-        set(handles.TargetSyn, 'Value', 0);
-    else
-        set(handles.OpenTargetMatte, 'Value', 1);
-        set(handles.TargetSyn, 'Enable', 'on');
-        set(handles.TargetSyn, 'Value', 1);
-        set(handles.OpenBackMatte, 'Enable', 'off');
-        set(handles.OpenBackMatte, 'Value', 0);
-        set(handles.TargetMatteButton, 'Enable', 'on');
-        set(handles.TargetForeMatte, 'Enable', 'on');
-    end
 else
-    set(handles.SourceMatteButton, 'Enable', 'off');
-    set(handles.SourceMatteButton, 'Value', 0);
-    set(handles.SourceVideoButton, 'Value', 1);
-    set(handles.SourceMatte, 'Enable', 'off');
+    % 设置渲染选项状态.
     set(handles.SourceSyn, 'Value', 0);
-%     set(handles.OpenBackMatte, 'Enable', 'off');
-%     set(handles.OpenBackMatte, 'Value', 0);
-%     set(handles.TargetSyn, 'Enable', 'off');
-%     set(handles.TargetSyn, 'Value', 0);
-    SourceSyn_Callback(handles.SourceSyn, eventdata, handles);
+    set(handles.SourceSyn, 'Enable', 'off');
+    set(handles.TargetSyn, 'Value', 0);
+    set(handles.TargetSyn, 'Enable', 'off');
+    set(handles.OpenBackGrading, 'Value', 0);
+    set(handles.OpenBackGrading, 'Enable', 'off');
+    set(handles.OpenTargetBackMatte, 'Value', 0);
+    set(handles.OpenTargetBackMatte, 'Enable', 'off');
+    % 设置RadioButton.
+    set(handles.SourceMatteButton, 'Enable', 'off');
+    set(handles.SourceMatteButton, 'Value',0);
+    set(handles.SourceVideoButton, 'Value', 1);
+    set(handles.BackVideo, 'Enable', 'off');
+    set(handles.BackVideo, 'Value', 0);
+    set(handles.TargetBackMatte, 'Enable', 'off');
+    set(handles.TargetBackMatte, 'Value', 0);
+    if(get(handles.TargetVideoButton, 'Value') == 0 && get(handles.TargetMatteButton, 'Value') == 0)
+        set(handles.TargetVideoButton, 'Value', 1);
+    end
+    % 设置快捷启动状态.
+    set(handles.UpdateBackKeyframes, 'Enable', 'off');
+    set(handles.UpdateBackKeyframes, 'Value', 0);
+    set(handles.OpenBackMatteReverse, 'Enable', 'off');
+    set(handles.OpenBackMatteReverse, 'Value', 0);
+    % 设置渲染池状态.
+    set(handles.TargetBackTag, 'Enable', 'off');
+    set(handles.TargetBackMatteTag, 'Enable','off');
+    set(handles.SourceMatte, 'Enable', 'off');
+    
     % 刷新源视频流渲染池.
     SourceMatteName = '';
     cla(handles.SourceMattePreview);
@@ -482,71 +521,6 @@ else
         'Units','Pixels',...
         'XTick',[],'YTick',[]);
     set(handles.SourceMattePreview, 'Visible', 'on');
-%     SourceVideoName = '';
-%     cla(handles.SourceVideoAxes);
-%     axes(handles.SourceVideoAxes);
-%     set(handles.SourceVideoAxes,...
-%         'Units','Pixels',...
-%         'XTick',[],'YTick',[]);
-%     set(handles.SourceVideoAxes, 'Visible', 'on');
-end
-% 设置目标蒙版开启状态.
-function OpenTargetMatte_Callback(hObject, eventdata, handles)
-global TargetForeMatteName;
-global TargetBackVideoName;
-global TargetBackMatteName;
-global SourceMatteOpen;
-global SourceSynOpen;
-global TargetForeMatteOpen;
-global TargetBackMatteOpen;
-global TargetSynOpen;
-SourceMatteOpen = get(handles.OpenSourceMatte, 'Value');
-SourceSynOpen = get(handles.SourceSyn, 'Value');
-TargetForeMatteOpen = get(handles.OpenTargetMatte, 'Value');
-TargetBackMatteOpen = get(handles.OpenBackMatte, 'Value');
-TargetSynOpen = get(handles.TargetSyn, 'Value');
-if(get(hObject, 'Value') == 1)
-    set(handles.TargetMatteButton, 'Enable', 'on');
-    if(get(handles.TargetSyn, 'Value') == 0 && get(handles.SourceSyn, 'Value') == 1)
-        set(handles.OpenBackMatte, 'Enable', 'on');
-    end
-    set(handles.TargetForeMatte, 'Enable', 'on');
-    set(handles.OpenForeMatteReverse,'Enable', 'on');
-else
-    set(handles.TargetMatteButton, 'Enable', 'off');
-    set(handles.TargetMatteButton, 'Value', 0);
-    set(handles.TargetVideoButton, 'Value', 1);
-    set(handles.TargetBackMatte, 'Enable', 'off');
-    set(handles.TargetBackMatte, 'Value', 0);
-    set(handles.BackVideo, 'Enable', 'off');
-    set(handles.BackVideo, 'Value', 0);
-    set(handles.OpenBackMatte, 'Enable', 'off');
-    set(handles.OpenBackMatte, 'Value', 0);
-    set(handles.TargetForeMatte, 'Enable', 'off');
-    set(handles.TargetBackTag, 'Enable', 'off');
-    set(handles.TargetBackMatteTag, 'Enable', 'off');
-    set(handles.TargetSyn, 'Value', 0);
-    set(handles.UpdateBackKeyframes, 'Enable', 'off');
-    set(handles.OpenForeMatteReverse,'Enable', 'off');
-    set(handles.OpenBackMatteReverse,'Enable', 'off');
-    set(handles.BackMatteHasAdded, 'Enable', 'off');
-    set(handles.OpenForeMatteReverse, 'Value', 0);
-    set(handles.BackMatteHasAdded, 'Value', 0);
-    set(handles.OpenBackMatteReverse, 'Value', 0);
-    %刷新目标视频流渲染池.
-    %     cla(handles.TargetVideoAxes);
-    %     axes(handles.TargetVideoAxes);
-    %     set(handles.TargetVideoAxes,...
-    %         'Units','Pixels',...
-    %         'XTick',[],'YTick',[]);
-    %     set(handles.TargetVideoAxes, 'Visible', 'on');
-    TargetForeMatteName = '';
-    cla(handles.TargetForeMattePreview);
-    axes(handles.TargetForeMattePreview);
-    set(handles.TargetForeMattePreview,...
-        'Units','Pixels',...
-        'XTick',[],'YTick',[]);
-    set(handles.TargetForeMattePreview, 'Visible', 'on');
     TargetBackVideoName = '';
     cla(handles.TargetBackPreview);
     axes(handles.TargetBackPreview);
@@ -562,44 +536,167 @@ else
         'XTick',[],'YTick',[]);
     set(handles.TargetBackMattePreview, 'Visible', 'on');
 end
-% 开启目标背景蒙版.
-function OpenBackMatte_Callback(hObject, eventdata, handles)
+VideoStatusSwitch(handles);
+    
+
+% 开启源前后背景同步.
+function SourceSyn_Callback(hObject, eventdata, handles)
 global TargetBackVideoName;
 global TargetBackMatteName;
-global SourceMatteOpen;
+
+if(get(hObject, 'Value') == 1)
+    % 设置渲染选项状态.
+    set(handles.TargetSyn, 'Value', 1);
+    set(handles.TargetSyn, 'Enable', 'on');
+    set(handles.OpenTargetForeMatte, 'Value', 1);
+    set(handles.OpenTargetForeMatte, 'Enable', 'on');
+    set(handles.OpenBackGrading, 'Value', 0);
+    set(handles.OpenBackGrading, 'Enable', 'off');
+    set(handles.OpenTargetBackMatte, 'Value', 0);
+    set(handles.OpenTargetBackMatte, 'Enable', 'off');
+    % 设置RadioButton.
+    set(handles.BackVideo, 'Enable', 'off');
+    set(handles.BackVideo, 'Value', 0);
+    set(handles.TargetBackMatte, 'Enable', 'off');
+    set(handles.TargetBackMatte, 'Value', 0);
+    set(handles.TargetMatteButton, 'Enable', 'on');
+    if(get(handles.TargetVideoButton, 'Value') ==0 && get(handles.TargetMatteButton, 'Value') == 0)
+        set(handles.TargetVideoButton, 'Value', 1);
+    end
+    % 设置快捷启动.
+    set(handles.UpdateBackKeyframes, 'Enable', 'off');
+    set(handles.UpdateBackKeyframes, 'Value', 0);
+    set(handles.OpenForeMatteReverse, 'Enable', 'on');
+    set(handles.OpenBackMatteReverse, 'Enable', 'off');
+    set(handles.OpenBackMatteReverse, 'Value', 0);
+    % 设置渲染池状态.
+    set(handles.TargetBackTag, 'Enable', 'off');
+    set(handles.TargetBackMatteTag, 'Enable', 'off');
+else
+    % 设置渲染选项状态.
+    set(handles.TargetSyn, 'Value', 0);
+    set(handles.TargetSyn, 'Enable', 'off');
+    set(handles.OpenBackGrading, 'Value', 0);
+    set(handles.OpenBackGrading, 'Enable', 'off');
+    set(handles.OpenTargetBackMatte, 'Value', 0);
+    set(handles.OpenTargetBackMatte, 'Enable', 'off');
+    % 设置RadioButton.
+    set(handles.BackVideo, 'Enable', 'off');
+    set(handles.BackVideo, 'Value', 0);
+    set(handles.TargetBackMatte, 'Enable', 'off');
+    set(handles.TargetBackMatte, 'Value', 0);
+    if(get(handles.TargetVideoButton, 'Value') ==0 && get(handles.TargetMatteButton, 'Value') == 0)
+        set(handles.TargetVideoButton, 'Value', 1);
+    end
+    % 设置快捷启动.
+    set(handles.UpdateBackKeyframes, 'Value', 0);
+    set(handles.UpdateBackKeyframes, 'Enable', 'off');
+    set(handles.OpenBackMatteReverse, 'Value', 0);
+    set(handles.OpenBackMatteReverse,'Enable', 'off');
+    % 设置渲染池状态.
+    set(handles.TargetBackTag, 'Enable', 'off');
+    set(handles.TargetBackMatteTag, 'Enable', 'off');
+
+    %刷新目标视频流渲染池.
+    TargetBackVideoName = '';
+    cla(handles.TargetBackPreview);
+    axes(handles.TargetBackPreview);
+    set(handles.TargetBackPreview,...
+        'Units','Pixels',...
+        'XTick',[],'YTick',[]);
+    set(handles.TargetBackPreview, 'Visible', 'on');
+    TargetBackMatteName = '';
+    cla(handles.TargetBackMattePreview);
+    axes(handles.TargetBackMattePreview);
+    set(handles.TargetBackMattePreview,...
+        'Units','Pixels',...
+        'XTick',[],'YTick',[]);
+    set(handles.TargetBackMattePreview, 'Visible', 'on');
+end
+VideoStatusSwitch(handles);
+
+% 设置目标蒙版开启状态.
+function OpenTargetForeMatte_Callback(hObject, eventdata, handles)
+global TargetForeMatteName;
+
+if(get(hObject, 'Value') == 1)
+    % 设置RadioButton.
+    set(handles.TargetMatteButton, 'Enable', 'on');
+    % 设置快捷启动.
+    set(handles.OpenForeMatteReverse, 'Enable', 'on');
+    % 设置渲染池状态.
+    set(handles.TargetForeMatte, 'Enable', 'on');
+    % 设置快捷启动.
+    set(handles.OpenForeMatteReverse, 'Enable', 'on');
+else
+    % 设置渲染状态选项.
+    set(handles.TargetSyn, 'Value', 0);
+    if(get(handles.SourceSyn, 'Value') == 1)
+        set(handles.OpenBackGrading, 'Enable', 'on');
+        set(handles.OpenBackGrading, 'Value', 1);
+        set(handles.OpenTargetBackMatte, 'Enable', 'on');
+    end
+    % 设置RadioButton.
+    if(get(handles.TargetMatteButton, 'Value') == 1)
+        set(handles.TargetMatteButton, 'Value', 0);
+        set(handles.TargetVideoButton, 'Value', 1);
+    end
+    set(handles.TargetMatteButton, 'Enable', 'off');
+    set(handles.BackVideo, 'Enable', 'on');
+    % 设置快捷启动.
+    set(handles.OpenForeMatteReverse, 'Enable', 'off');
+    set(handles.OpenForeMatteReverse, 'Value', 0);
+    set(handles.UpdateBackKeyframes, 'Enable', 'on');
+    set(handles.UpdateBackKeyframes, 'Value', 1);
+    % 设置渲染池状态.
+    set(handles.TargetForeMatte, 'Enable', 'off');
+    
+    % 刷新目标视频流状态.
+    TargetForeMatteName = '';
+    cla(handles.TargetForeMattePreview);
+    axes(handles.TargetForeMattePreview);
+    set(handles.TargetForeMattePreview,...
+        'Units','Pixels',...
+        'XTick',[],'YTick',[]);
+    set(handles.TargetForeMattePreview, 'Visible', 'on');
+end
+
+
+% 开启目标前后背景同步.
+function TargetSyn_Callback(hObject, eventdata, handles)
 global SourceSynOpen;
-global TargetForeMatteOpen;
-global TargetBackMatteOpen;
-global TargetSynOpen;
-SourceMatteOpen = get(handles.OpenSourceMatte, 'Value');
+global TargetBackVideoName;
+global TargetBackMatteName;
 SourceSynOpen = get(handles.SourceSyn, 'Value');
-TargetForeMatteOpen = get(handles.OpenTargetMatte, 'Value');
-TargetBackMatteOpen = get(handles.OpenBackMatte, 'Value');
-TargetSynOpen = get(handles.TargetSyn, 'Value');
-if(get(handles.TargetSyn, 'Value') == 0)
-    if(get(hObject, 'Value') == 1)
-        set(handles.TargetBackMatte, 'Enable', 'on');
-        set(handles.BackVideo, 'Enable', 'on');
-        set(handles.TargetBackTag, 'Enable', 'on');
-        set(handles.TargetBackMatteTag, 'Enable', 'on');
-        set(handles.UpdateBackKeyframes, 'Enable', 'on');
-        set(handles.OpenBackMatteReverse,'Enable', 'on');
-        set(handles.BackMatteHasAdded, 'Enable', 'on');
-    else
-        set(handles.TargetBackMatte, 'Enable', 'off');
+
+if(get(hObject, 'Value') == 1)
+    if(SourceSynOpen == 1)
+        % 设置渲染选项状态.
+        set(handles.OpenTargetForeMatte, 'Value', 1);
+        set(handles.OpenTargetForeMatte, 'Enable', 'on');
+        set(handles.OpenBackGrading, 'Value', 0);
+        set(handles.OpenBackGrading, 'Enable', 'off');
+        set(handles.OpenTargetBackMatte, 'Value', 0);
+        set(handles.OpenTargetBackMatte, 'Enable', 'off');
+        % 设置RadioButton.
         set(handles.BackVideo, 'Enable', 'off');
         set(handles.BackVideo, 'Value', 0);
+        set(handles.TargetBackMatte, 'Enable', 'off');
         set(handles.TargetBackMatte, 'Value', 0);
-        if(get(handles.TargetVideoButton, 'Value') ==0 && get(handles.TargetMatteButton, 'Value') == 0)
+        if(get(handles.TargetVideoButton,'Value') == 0 && get(handles.TargetMatteButton, 'Value') == 0)
             set(handles.TargetVideoButton, 'Value', 1);
         end
+        % 设置快捷启动.
+        set(handles.UpdateBackKeyframes, 'Enable', 'off');
+        set(handles.UpdateBackKeyframes, 'Value', 0);
+        set(handles.OpenForeMatteReverse, 'Enable', 'on');
+        set(handles.OpenBackMatteReverse, 'Enable', 'off');
+        set(handles.OpenBackMatteReverse, 'Value', 0);
+        % 设置渲染池状态.
+        set(handles.TargetForeMatte, 'Enable', 'on');
         set(handles.TargetBackTag, 'Enable', 'off');
         set(handles.TargetBackMatteTag, 'Enable', 'off');
-        set(handles.UpdateBackKeyframes, 'Enable', 'off');
-        set(handles.OpenBackMatteReverse,'Enable', 'off');
-        set(handles.BackMatteHasAdded, 'Enable', 'off');
-        set(handles.OpenBackMatteReverse, 'Value', 0);
-        set(handles.BackMatteHasAdded, 'Value', 0);
+      
         %刷新目标视频流渲染池.
         TargetBackVideoName = '';
         cla(handles.TargetBackPreview);
@@ -617,86 +714,114 @@ if(get(handles.TargetSyn, 'Value') == 0)
         set(handles.TargetBackMattePreview, 'Visible', 'on');
     end
 else
-    set(handles.TargetBackMatte, 'Enable', 'off');
-    set(handles.TargetBackMatte, 'Value', 0);
-    set(handles.BackVideo, 'Enable', 'off');
-    set(handles.BackVideo, 'Value', 0);
-    if(get(handles.TargetVideoButton, 'Value') ==0 && get(handles.TargetMatteButton, 'Value') == 0)
-        set(handles.TargetVideoButton, 'Value', 1);
+    if(SourceSynOpen == 1)
+        % 设置渲染选项状态.
+        set(handles.OpenBackGrading, 'Enable', 'on');
+        set(handles.OpenBackGrading, 'Value', 1);
+        set(handles.OpenTargetBackMatte, 'Enable', 'on');
+        % 设置RadioButton.
+        set(handles.BackVideo, 'Enable', 'on');
+        % 设置快捷启动.
+        set(handles.UpdateBackKeyframes, 'Enable','on');
+        set(handles.UpdateBackKeyframes, 'Value', 1);
+        % 设置渲染池状态.
+        set(handles.TargetBackTag, 'Enable', 'on');
     end
-    set(handles.TargetBackTag, 'Enable', 'off');
-    set(handles.TargetBackMatteTag, 'Enable', 'off');
-    set(handles.UpdateBackKeyframes, 'Enable', 'off');
-    set(handles.BackMatteHasAdded, 'Enable', 'off');
-    set(handles.OpenBackMatteReverse,'Enable', 'off');
-    set(handles.BackMatteHasAdded, 'Value', 0);
-    set(handles.OpenBackMatteReverse, 'Value', 0);
-    %刷新目标视频流渲染池.
-    TargetBackVideoName = '';
-    cla(handles.TargetBackPreview);
-    axes(handles.TargetBackPreview);
-    set(handles.TargetBackPreview,...
-        'Units','Pixels',...
-        'XTick',[],'YTick',[]);
-    set(handles.TargetBackPreview, 'Visible', 'on');
-    TargetBackMatteName = '';
-    cla(handles.TargetBackMattePreview);
-    axes(handles.TargetBackMattePreview);
-    set(handles.TargetBackMattePreview,...
-        'Units','Pixels',...
-        'XTick',[],'YTick',[]);
-    set(handles.TargetBackMattePreview, 'Visible', 'on');
 end
-% 开启源前后背景同步.
-function SourceSyn_Callback(hObject, eventdata, handles)
+
+
+% 开启目标背景蒙版.
+function OpenBackGrading_Callback(hObject, eventdata, handles)
 global TargetBackVideoName;
 global TargetBackMatteName;
-global SourceMatteOpen;
 global SourceSynOpen;
-global TargetForeMatteOpen;
-global TargetBackMatteOpen;
-global TargetSynOpen;
-SourceMatteOpen = get(handles.OpenSourceMatte, 'Value');
 SourceSynOpen = get(handles.SourceSyn, 'Value');
-TargetForeMatteOpen = get(handles.OpenTargetMatte, 'Value');
-TargetBackMatteOpen = get(handles.OpenBackMatte, 'Value');
-TargetSynOpen = get(handles.TargetSyn, 'Value');
-VideoStatusSwitch(handles);
-
 if(get(hObject, 'Value') == 1)
-    set(handles.OpenSourceMatte, 'Value', 1);
-    OpenSourceMatte_Callback(handles.OpenSourceMatte, eventdata, handles);
-    set(handles.OpenForeMatteReverse,'Enable', 'on');
+    if(SourceSynOpen == 1)
+        % 设置渲染选项状态.
+        set(handles.TargetSyn, 'Value', 0);
+        set(handles.TargetSyn, 'Enable', 'off');
+        set(handles.OpenTargetBackMatte, 'Enable', 'on');
+        % 设置RadioButton.
+        set(handles.BackVideo, 'Enable', 'on');
+        % 设置快捷启动.
+        set(handles.UpdateBackKeyframes, 'Enable', 'on');
+        set(handles.UpdateBackKeyframes, 'Value', 1);
+        % 设置渲染池状态.
+        set(handles.TargetBackTag, 'Enable', 'on');
+    end
 else
-    set(handles.TargetSyn, 'Value', 0);
-    set(handles.TargetSyn, 'Enable', 'off');
-    set(handles.OpenBackMatte, 'Value', 0);
-    set(handles.OpenBackMatte, 'Enable', 'off');
-    set(handles.BackVideo, 'Enable', 'off');
-    set(handles.BackVideo, 'Value', 0);
+    if(SourceSynOpen == 1)
+        % 设置渲染选项状态.
+        set(handles.TargetSyn, 'Value', 1);
+        set(handles.TargetSyn, 'Enable', 'on');
+        set(handles.OpenTargetForeMatte, 'Value', 1);
+        set(handles.OpenTargetForeMatte, 'Enable', 'on');
+        set(handles.OpenBackGrading, 'Enable', 'off');
+        set(handles.OpenTargetBackMatte, 'Value', 0);
+        set(handles.OpenTargetBackMatte, 'Enable', 'off');
+        % 设置RadioButton.
+        set(handles.BackVideo, 'Enable', 'off');
+        set(handles.BackVideo, 'Value', 0);
+        set(handles.TargetBackMatte, 'Enable', 'off');
+        set(handles.TargetBackMatte, 'Value', 0);
+        set(handles.TargetMatteButton, 'Enable', 'on');
+        if(get(handles.TargetVideoButton, 'Value') ==0 && get(handles.TargetMatteButton, 'Value') == 0)
+            set(handles.TargetVideoButton, 'Value', 1);
+        end
+        % 设置快捷启动.
+        set(handles.UpdateBackKeyframes, 'Enable', 'off');
+        set(handles.UpdateBackKeyframes, 'Value', 0);
+        set(handles.OpenBackMatteReverse, 'Enable', 'off');
+        set(handles.OpenBackMatteReverse, 'Value', 0);
+        % 设置渲染池状态.
+        set(handles.TargetBackTag, 'Enable', 'off');
+        set(handles.TargetBackMatteTag, 'Enable', 'off');
+        
+        %刷新目标视频流渲染池.
+        TargetBackVideoName = '';
+        cla(handles.TargetBackPreview);
+        axes(handles.TargetBackPreview);
+        set(handles.TargetBackPreview,...
+            'Units','Pixels',...
+            'XTick',[],'YTick',[]);
+        set(handles.TargetBackPreview, 'Visible', 'on');
+        TargetBackMatteName = '';
+        cla(handles.TargetBackMattePreview);
+        axes(handles.TargetBackMattePreview);
+        set(handles.TargetBackMattePreview,...
+            'Units','Pixels',...
+            'XTick',[],'YTick',[]);
+        set(handles.TargetBackMattePreview, 'Visible', 'on');
+    end
+end
+
+
+% 设置BackMatte视频流的添加与否.
+function OpenTargetBackMatte_Callback(hObject, eventdata, handles)
+global TargetBackMatteName;
+if(get(handles.OpenTargetBackMatte, 'Value') == 1)
+    % 设置RadioButton.
+    set(handles.TargetBackMatte, 'Enable', 'on');
+    % 设置快捷启动.
+    set(handles.OpenBackMatteReverse, 'Enable','on');
+    set(handles.OpenBackMatteReverse, 'Value', 0);
+    % 设置渲染池状态.
+    set(handles.TargetBackMatteTag, 'Enable', 'on');
+else
+    % 设置RadioButton.
     set(handles.TargetBackMatte, 'Enable', 'off');
-    set(handles.TargetBackMatte, 'Value', 0);
-    if(get(handles.TargetVideoButton, 'Value') ==0 && get(handles.TargetMatteButton, 'Value') == 0)
+    if(get(handles.TargetBackMatte, 'Value') == 1)
+        set(handles.TargetBackMatte, 'Value', 0);
         set(handles.TargetVideoButton, 'Value', 1);
     end
-    set(handles.TargetBackTag, 'Enable', 'off');
-    set(handles.TargetBackMatteTag, 'Enable', 'off');
-    set(handles.UpdateBackKeyframes, 'Enable', 'off');
-    set(handles.OpenBackMatteReverse,'Enable', 'off');
-    set(handles.BackMatteHasAdded, 'Enable', 'off');
-    set(handles.BackMatteHasAdded, 'Value', 0);
+    % 设置快捷启动.
+    set(handles.OpenBackMatteReverse, 'Enable','off');
     set(handles.OpenBackMatteReverse, 'Value', 0);
-    if(get(handles.OpenTargetMatte, 'Value') == 0)
-        set(handles.OpenForeMatteReverse,'Enable', 'off');
-    end
-    %刷新目标视频流渲染池.
-    TargetBackVideoName = '';
-    cla(handles.TargetBackPreview);
-    axes(handles.TargetBackPreview);
-    set(handles.TargetBackPreview,...
-        'Units','Pixels',...
-        'XTick',[],'YTick',[]);
-    set(handles.TargetBackPreview, 'Visible', 'on');
+    % 设置渲染池状态.
+    set(handles.TargetBackMatteTag, 'Enable', 'off');
+    
+    % 刷新目标视频流渲染池.
     TargetBackMatteName = '';
     cla(handles.TargetBackMattePreview);
     axes(handles.TargetBackMattePreview);
@@ -704,37 +829,6 @@ else
         'Units','Pixels',...
         'XTick',[],'YTick',[]);
     set(handles.TargetBackMattePreview, 'Visible', 'on');
-end
-% 开启目标前后背景同步.
-function TargetSyn_Callback(hObject, eventdata, handles)
-global SourceMatteOpen;
-global SourceSynOpen;
-global TargetForeMatteOpen;
-global TargetBackMatteOpen;
-global TargetSynOpen;
-SourceMatteOpen = get(handles.OpenSourceMatte, 'Value');
-SourceSynOpen = get(handles.SourceSyn, 'Value');
-TargetForeMatteOpen = get(handles.OpenTargetMatte, 'Value');
-TargetBackMatteOpen = get(handles.OpenBackMatte, 'Value');
-TargetSynOpen = get(handles.TargetSyn, 'Value');
-if(get(hObject, 'Value') == 1)
-    set(handles.OpenTargetMatte, 'Value', 1);
-    OpenTargetMatte_Callback(handles.OpenTargetMatte, eventdata, handles);
-    set(handles.OpenBackMatte, 'Value', 0);
-    set(handles.OpenBackMatte, 'Enable', 'off');
-    OpenBackMatte_Callback(handles.OpenBackMatte, eventdata, handles);
-else
-    if(get(handles.OpenTargetMatte, 'Value') == 1)
-        OpenTargetMatte_Callback(handles.OpenTargetMatte, eventdata, handles);
-    end
-end
-% 设置BackMatte视频流的添加与否.
-function BackMatteHasAdded_Callback(hObject, eventdata, handles)
-global BackMatteHasBeenAdd;
-global TargetBackMatteName;
-BackMatteHasBeenAdd = get(hObject, 'Value');
-if(BackMatteHasBeenAdd == 0)
-    TargetBackMatteName = '';
 end
 
 
@@ -812,23 +906,17 @@ end
 % 启动视频流渲染.
 function Render_Callback(hObject, eventdata, handles)
 global rendering;
-global BackMatteHasBeenAdd;
 global SourceMatteOpen;
 global SourceSynOpen;
 global TargetForeMatteOpen;
 global TargetBackMatteOpen;
 global TargetSynOpen;
+global TargetBackGradingOpen;
 global OpenFilter;
 global OpenUpdateForeKeyFrames;
 global OpenUpdateBackKeyFrames;
 global OpenForeMatteReverseSwitch;
 global OpenBackMatteReverseSwitch;
-% global StatusBarHandle;
-% global BackMatteHasBeenAdd;
-% global TargetForeVideoName;
-% global TargetForeMatteName;
-% global TargetBackVideoName;
-% global TargetBackMatteName;
 if(rendering == 0)
     rendering = 1;
     UIStatusSwitch(1, handles);
@@ -842,14 +930,11 @@ if(rendering == 0)
     OpenFilter = get(handles.OpenFilter, 'Value');
     SourceMatteOpen = get(handles.OpenSourceMatte, 'Value');
     SourceSynOpen = get(handles.SourceSyn, 'Value');
-    TargetForeMatteOpen = get(handles.OpenTargetMatte, 'Value');
-    TargetBackMatteOpen = get(handles.OpenBackMatte, 'Value');
+    TargetBackGradingOpen = get(handles.OpenBackGrading, 'Value');
+    TargetForeMatteOpen = get(handles.OpenTargetForeMatte, 'Value');
+    TargetBackMatteOpen = get(handles.OpenTargetBackMatte, 'Value');
     TargetSynOpen = get(handles.TargetSyn, 'Value');
-    BackMatteHasBeenAdd = get(handles.BackMatteHasAdded, 'Value');
-    %StatusBarHandle = get(handles.StatusWindow, 'Tag');
     GetAllVideoOutputStatus(handles);
-%     ColorTransferWithinPerframe();
-%     SaveRenderedVideoSlice();
     ColorTransferWithinVideo();
     UIStatusSwitch(0, handles);
     set(handles.Render, 'Enable', 'on');
