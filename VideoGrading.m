@@ -71,6 +71,8 @@ global TargetForeImageName;
 global TargetForeImageMatteName;
 global TargetBackImageName;
 global TargetBackImageMatteName;
+global ImageStatus;
+global ShowResulting;
 function VideoGrading_OpeningFcn(hObject, eventdata, handles, varargin)
 % global LeftFrameRunning;
 % LeftFrameRunning = 0;
@@ -80,6 +82,8 @@ function VideoGrading_OpeningFcn(hObject, eventdata, handles, varargin)
 % RightFrameRunning = 0;
 % global rightOver;
 % rightOver = 0;
+global ShowResulting;
+ShowResulting = 0;
 global leftLastVideoName;
 leftLastVideoName = '';
 global rightLastVideoName;
@@ -104,6 +108,8 @@ global StartRealTimeRendering;
 StartRealTimeRendering = 0;
 global CoreMethodName;
 CoreMethodName = 'ColorGradingMethod';
+global ImageStatus;
+ImageStatus = 0;
 SoftIcon = javax.swing.ImageIcon('Color.png');
 figFrame = get(hObject,'JavaFrame'); 
 figFrame.setFigureIcon(SoftIcon);
@@ -183,11 +189,16 @@ function FillPreviewWindow(hObject, AxesHandle, handles, curPopMenu)
 %         RightFrameRunning = 0;
 %     end
 % end
+global ShowResulting;
 if(strcmp(get(handles.SwitchButton,'String'),'SwitchImage') == 1)
     set(handles.LeftPlay, 'string','Play')
     ListName = get(hObject,'UserData');
     CurrentVideo = char(ListName(get(hObject,'Value')));
-    VideoMedia = VideoReader(strcat('Video\StartVideo\',CurrentVideo));
+    if(ShowResulting == 0)
+        VideoMedia = VideoReader(strcat('Video\StartVideo\',CurrentVideo));
+    else
+        VideoMedia = VideoReader(strcat('Video\ResultVideo\TotalVideos\',CurrentVideo));
+    end
     videoHeight = VideoMedia.Height;
     videoWidth = VideoMedia.Width;
     nFrames = VideoMedia.NumberOfFrames;
@@ -207,7 +218,11 @@ if(strcmp(get(handles.SwitchButton,'String'),'SwitchImage') == 1)
 else
     ListName = get(hObject, 'UserData');
     CurrentImage = char(ListName(get(hObject,'Value')));
-    P = imread(char(strcat('Images\',CurrentImage)));
+    if(ShowResulting == 0)
+        P = imread(char(strcat('Images\',CurrentImage)));
+    else
+        P = imread(char(strcat('VideoSlices\TotalSlices\',CurrentImage)));
+    end
     [x,y,~] = size(P);
     Position = get(AxesHandle,'Position');
     AxesWidth = floor(Position(3));
@@ -252,6 +267,7 @@ end
 set(hObject,'String',ListImage);
 set(hObject,'UserData',filenames);
 set(hObject,'Value',i);
+
 function FillPopMenuImageData(hObject)
 dirs1 = dir('Images\*.bmp');
 dirs2 = dir('Images\*.jpg');
@@ -275,6 +291,31 @@ if nargin == 2
         end
     end
 end
+set(hObject,'String',ListImage);
+set(hObject,'UserData',filenames);
+set(hObject,'Value',i);
+
+function FillPopMenuResultData(hObject, imageOrMp4)
+if(imageOrMp4 == 1)
+    dirs1 = dir('VideoSlices\TotalSlices\*.bmp');
+    dirs2 = dir('VideoSlices\TotalSlices\*.jpg');
+else
+    dirs1 = dir('Video\ResultVideo\TotalVideos\*.mp4');
+    dirs2 = dir('Video\ResultVideo\TotalVideos\*.avi');
+end
+dirs = [dirs1;dirs2];
+dircell = struct2cell(dirs)';
+filenames = dircell(:,1);
+[x,~] = size(filenames);
+if x > 0 
+    ListImage = char(filenames(1));
+else
+    ListImage = '';
+end
+for i = 2:x
+    ListImage = strcat(ListImage,'|',char(filenames(i)));
+end
+i = 1;
 set(hObject,'String',ListImage);
 set(hObject,'UserData',filenames);
 set(hObject,'Value',i);
@@ -1053,6 +1094,7 @@ global OpenUpdateForeKeyFrames;
 global OpenUpdateBackKeyFrames;
 global OpenForeMatteReverseSwitch;
 global OpenBackMatteReverseSwitch;
+set(handles.ShowResult, 'String','ShowResult');
 if(rendering == 0)
     rendering = 1;
     UIStatusSwitch(1, handles);
@@ -1340,6 +1382,8 @@ MethodSwitch('Reinhard',handles);
 function SwitchButton_Callback(hObject, eventdata, handles)
 global StatusBarHandle;
 StatusBarHandle = handles.StatusWindow;
+global ImageStatus;
+set(handles.ShowResult,'String','ShowResult');
 if(strcmp(get(hObject,'String'), 'SwitchImage') == 1)
     set(hObject, 'String', 'SwitchVideo');
     set(handles.SourceVideoButton, 'String', 'SourceImage');
@@ -1352,6 +1396,7 @@ if(strcmp(get(hObject,'String'), 'SwitchImage') == 1)
     FillPreviewWindow(handles.TargetVideoMenu, handles.TargetVideoAxes, handles, 'right');
     set(handles.LeftPlay,'Enable','off');
     set(handles.RightPlay,'Enable','off');
+    ImageStatus = 1;
 else
     set(hObject, 'String', 'SwitchImage');
     set(handles.SourceVideoButton, 'String', 'SourceVideo');
@@ -1364,4 +1409,31 @@ else
     FillPreviewWindow(handles.TargetVideoMenu, handles.TargetVideoAxes, handles, 'right');
     set(handles.LeftPlay,'Enable','on');
     set(handles.RightPlay,'Enable','on');
+    ImageStatus = 0;
+end
+
+
+% 显示最终结果.
+function ShowResult_Callback(hObject, eventdata, handles)
+global ShowResulting;
+if(strcmp(get(hObject,'String'), 'ShowResult') == 1)
+    set(hObject,'String','RESET');
+    if(strcmp(get(handles.SwitchButton,'String'), 'SwitchImage') == 1)
+        FillPopMenuResultData(handles.SourceVideoMenu, 0);
+        FillPopMenuResultData(handles.TargetVideoMenu, 0);
+    else
+        FillPopMenuResultData(handles.SourceVideoMenu, 1);
+        FillPopMenuResultData(handles.TargetVideoMenu, 1);
+    end
+    ShowResulting = 1;
+else
+    set(hObject,'String','ShowResult');
+    if(strcmp(get(handles.SwitchButton,'String'), 'SwitchImage') == 1)
+        FillPopMemuData(handles.SourceVideoMenu);
+        FillPopMemuData(handles.TargetVideoMenu);
+    else
+        FillPopMenuImageData(handles.SourceVideoMenu);
+        FillPopMenuImageData(handles.TargetVideoMenu);
+    end
+    ShowResulting = 0;
 end

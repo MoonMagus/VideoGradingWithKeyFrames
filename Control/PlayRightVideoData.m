@@ -4,7 +4,7 @@ function  PlayRightVideoData(AxesHandle, playHandle, handles, VideoName)
 % global rightOver;
 global movRight;
 global rightLastVideoName;
-
+global ShowResulting;
 
 %获得左右视频标签.
 % if(ishandle(AxesHandle) == 1)
@@ -12,7 +12,11 @@ global rightLastVideoName;
 % end
 
 %获取视频的数据结构.
-VideoMedia = VideoReader(strcat('Video\StartVideo\',VideoName));
+if(ShowResulting == 0)
+    VideoMedia = VideoReader(strcat('Video\StartVideo\',VideoName));
+else
+    VideoMedia = VideoReader(strcat('Video\ResultVideo\TotalVideos\',VideoName));
+end
 nFrames = VideoMedia.NumberOfFrames;
 videoHeight = VideoMedia.Height;
 videoWidth = VideoMedia.Width;

@@ -110,6 +110,7 @@ if(close == 1)
     set(handles.ColorGradingMethod,'Enable','off');
     set(handles.ReinhardMethod,'Enable','off');
     set(handles.SwitchButton,'Enable','off');
+    set(handles.ShowResult,'Enable','off');
 else
     set(handles.SourceVideoButton, 'Enable', UiStatus.SourceVideoButtonEnable);
     set(handles.SourceMatteButton, 'Enable', UiStatus.SourceMatteButtonEnable);
@@ -172,4 +173,5 @@ else
     set(handles.SwitchButton,'Enable','on');
     set(handles.ColorGradingMethod,'Enable',UiStatus.ColorGradingMethod);
     set(handles.ReinhardMethod,'Enable',UiStatus.ReinhardMethod);
+    set(handles.ShowResult,'Enable','on');
 end
