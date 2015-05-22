@@ -4,10 +4,9 @@ global SourceSynOpen;
 global TargetForeMatteOpen;
 global TargetBackGradingOpen;
 global TargetBackMatteOpen;
-
+global CoreMethodName;
 global SourceVideoName;
 global SourceMatteName;
-
 global ForeStruct;
 global BackStruct;
 global ResultStruct;
@@ -127,13 +126,25 @@ for i = 1 : nFrames
         FreshListBox('渲染视频帧被临时终止...', StatusBarHandle);
         return;
     end
-    ForeStruct = ColorTransferWithVideo(SourceVideo(i).cdata, SourceMatteOpen, SourceMatteVideo(i).cdata, F1, n1, H1, OpenFilter, 0);
+    if(strcmp(CoreMethodName, 'ColorGradingMethod') == 1)
+        ForeStruct = ColorTransferWithVideo(SourceVideo(i).cdata, SourceMatteOpen, SourceMatteVideo(i).cdata, F1, n1, H1, OpenFilter, 0);
+    elseif(strcmp(CoreMethodName, 'ReinhardMethod') == 1)
+        ForeStruct = ColorTransferWithVideoReinhard(SourceVideo(i).cdata, SourceMatteOpen, SourceMatteVideo(i).cdata, F1, n1, 1, Filenames1, 1);
+    end
     if(SourceSynOpen  == 1)
         SourceBackMatte = 255 - SourceMatteVideo(i).cdata;
         if(TargetBackGradingOpen == 0)
-             BackStruct =  ColorTransferWithVideo(SourceVideo(i).cdata, 1, SourceBackMatte, F3, n3, H3, OpenFilter, 0);
+            if(strcmp(CoreMethodName, 'ColorGradingMethod') == 1)
+                BackStruct =  ColorTransferWithVideo(SourceVideo(i).cdata, 1, SourceBackMatte, F3, n3, H3, OpenFilter, 0); 
+            elseif(strcmp(CoreMethodName, 'ReinhardMethod') == 1)
+                BackStruct =  ColorTransferWithVideoReinhard(SourceVideo(i).cdata, 1, SourceBackMatte, F3, n3, 1, Filenames3, 1);
+            end
         else
-             BackStruct =  ColorTransferWithVideo(SourceVideo(i).cdata, 1, SourceBackMatte, F2, n2, H2, OpenFilter, 0);
+            if(strcmp(CoreMethodName, 'ColorGradingMethod') == 1)
+                BackStruct =  ColorTransferWithVideo(SourceVideo(i).cdata, 1, SourceBackMatte, F2, n2, H2, OpenFilter, 0);
+            elseif(strcmp(CoreMethodName, 'ReinhardMethod') == 1)
+                BackStruct =  ColorTransferWithVideoReinhard(SourceVideo(i).cdata, 1, SourceBackMatte, F2, n2, 0, Filenames2, 1);
+            end
         end
     end
     % 合成渲染结果.

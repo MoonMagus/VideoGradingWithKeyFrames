@@ -64,7 +64,13 @@ global movLeft;
 global movRight;
 global leftLastVideoName;
 global rightLastVideoName;
-global TargetBackGradingOpen;
+global CoreMethodName;
+global SourceImageName;
+global SourceMatteImageName;
+global TargetForeImageName;
+global TargetForeImageMatteName;
+global TargetBackImageName;
+global TargetBackImageMatteName;
 function VideoGrading_OpeningFcn(hObject, eventdata, handles, varargin)
 % global LeftFrameRunning;
 % LeftFrameRunning = 0;
@@ -96,6 +102,11 @@ global figHandle;
 figHandle = hObject;
 global StartRealTimeRendering;
 StartRealTimeRendering = 0;
+global CoreMethodName;
+CoreMethodName = 'ColorGradingMethod';
+SoftIcon = javax.swing.ImageIcon('Color.png');
+figFrame = get(hObject,'JavaFrame'); 
+figFrame.setFigureIcon(SoftIcon);
 handles.output = hObject;
 guidata(hObject, handles);
 InitialAxes(handles);
@@ -172,32 +183,78 @@ function FillPreviewWindow(hObject, AxesHandle, handles, curPopMenu)
 %         RightFrameRunning = 0;
 %     end
 % end
-set(handles.LeftPlay, 'string','Play')
-ListName = get(hObject,'UserData');
-CurrentVideo = char(ListName(get(hObject,'Value')));
-VideoMedia = VideoReader(strcat('Video\StartVideo\',CurrentVideo));
-videoHeight = VideoMedia.Height;
-videoWidth = VideoMedia.Width;
-nFrames = VideoMedia.NumberOfFrames;
-if(1 == strcmp(curPopMenu, 'left'))
-    set(handles.LeftFrameNum, 'string',strcat('共',num2str(nFrames),'帧'));
+if(strcmp(get(handles.SwitchButton,'String'),'SwitchImage') == 1)
+    set(handles.LeftPlay, 'string','Play')
+    ListName = get(hObject,'UserData');
+    CurrentVideo = char(ListName(get(hObject,'Value')));
+    VideoMedia = VideoReader(strcat('Video\StartVideo\',CurrentVideo));
+    videoHeight = VideoMedia.Height;
+    videoWidth = VideoMedia.Width;
+    nFrames = VideoMedia.NumberOfFrames;
+    if(1 == strcmp(curPopMenu, 'left'))
+        set(handles.LeftFrameNum, 'string',strcat('共',num2str(nFrames),'帧'));
+    else
+        set(handles.RightFrameNum, 'string',strcat('共',num2str(nFrames),'帧'));
+    end
+    Position = get(AxesHandle,'Position');
+    AxesWidth = floor(Position(3));
+    AxesHeight = floor(Position(4));
+    mov = struct('cdata', zeros(AxesHeight, AxesWidth, 3, 'uint8'));
+    h1 = floor((AxesHeight - floor(AxesWidth * videoHeight / videoWidth))/2);
+    h2 = floor(AxesWidth * videoHeight / videoWidth);
+    P = read(VideoMedia, 1);
+    mov.cdata(h1 : h1 + h2 - 1, :, :) = imresize(P,[h2, AxesWidth]);
 else
-    set(handles.RightFrameNum, 'string',strcat('共',num2str(nFrames),'帧'));
+    ListName = get(hObject, 'UserData');
+    CurrentImage = char(ListName(get(hObject,'Value')));
+    P = imread(char(strcat('Images\',CurrentImage)));
+    [x,y,~] = size(P);
+    Position = get(AxesHandle,'Position');
+    AxesWidth = floor(Position(3));
+    AxesHeight = floor(Position(4));
+    mov = struct('cdata', zeros(AxesHeight, AxesWidth, 3, 'uint8'));
+    if(x/y < AxesHeight/AxesWidth)
+        h1 = floor((AxesHeight - floor(AxesWidth * x / y))/2);
+        h2 = floor(AxesWidth * x / y);
+        mov.cdata(h1 : h1 + h2 - 1, :, :) = imresize(P,[h2, AxesWidth]);
+    else
+        w1 = floor((AxesWidth - floor(AxesHeight*y/x))/2);
+        w2 = floor(AxesHeight * y / x);
+        mov.cdata(:,w1 : w1 + w2 - 1, :) = imresize(P,[AxesHeight, w2]);
+    end
 end
-Position = get(AxesHandle,'Position');
-AxesWidth = floor(Position(3));
-AxesHeight = floor(Position(4));
-mov = struct('cdata', zeros(AxesHeight, AxesWidth, 3, 'uint8'));
-h1 = floor((AxesHeight - floor(AxesWidth * videoHeight / videoWidth))/2);
-h2 = floor(AxesWidth * videoHeight / videoWidth);
-P = read(VideoMedia, 1);
-mov.cdata(h1 : h1 + h2 - 1, :, :) = imresize(P,[h2, AxesWidth]);
 axes(AxesHandle);
 imshow(mov.cdata);
-% 拉取PopMenu下的内容.
+% 拉取PopMenu下的Video内容.
 function FillPopMemuData(hObject, VideoName)
 dirs1 = dir('Video\StartVideo\*.mp4');
 dirs2 = dir('Video\StartVideo\*.avi');
+dirs = [dirs1;dirs2];
+dircell = struct2cell(dirs)';
+filenames = dircell(:,1);
+[x,~] = size(filenames);
+if x > 0 
+    ListImage = char(filenames(1));
+else
+    ListImage = '';
+end
+for i = 2:x
+    ListImage = strcat(ListImage,'|',char(filenames(i)));
+end
+i = 1;
+if nargin == 2
+    for i=1:x
+        if strcmp(char(filenames(i)),VideoName)==1
+            break;
+        end
+    end
+end
+set(hObject,'String',ListImage);
+set(hObject,'UserData',filenames);
+set(hObject,'Value',i);
+function FillPopMenuImageData(hObject)
+dirs1 = dir('Images\*.bmp');
+dirs2 = dir('Images\*.jpg');
 dirs = [dirs1;dirs2];
 dircell = struct2cell(dirs)';
 filenames = dircell(:,1);
@@ -239,8 +296,6 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 FillPopMemuData(hObject);
-
-
 
 
 
@@ -837,70 +892,151 @@ end
 function LeftAddVideoButton_Callback(hObject, eventdata, handles)
 global SourceVideoName;
 global SourceMatteName;
-ListName = get(handles.SourceVideoMenu, 'UserData');
-CurrentVideo = char(ListName(get(handles.SourceVideoMenu,'Value')));
-VideoMedia = VideoReader(strcat('Video\StartVideo\',CurrentVideo));
-videoHeight = VideoMedia.Height;
-videoWidth = VideoMedia.Width;
-AxesHandle = handles.SourceVideoAxes;
-Position = get(AxesHandle,'Position');
-AxesWidth = floor(Position(3));
-AxesHeight = floor(Position(4));
-mov = struct('cdata', zeros(AxesHeight, AxesWidth, 3, 'uint8'));
-h1 = floor((AxesHeight - floor(AxesWidth * videoHeight / videoWidth))/2);
-h2 = floor(AxesWidth * videoHeight / videoWidth);
-P = read(VideoMedia, 1);
-mov.cdata(h1 : h1 + h2 - 1, :, :) = imresize(P,[h2, AxesWidth]);
+global SourceImageName;
+global SourceMatteImageName;
+if(strcmp(get(handles.SwitchButton, 'String'),'SwitchImage'))
+    ListName = get(handles.SourceVideoMenu, 'UserData');
+    CurrentVideo = char(ListName(get(handles.SourceVideoMenu,'Value')));
+    VideoMedia = VideoReader(strcat('Video\StartVideo\',CurrentVideo));
+    videoHeight = VideoMedia.Height;
+    videoWidth = VideoMedia.Width;
+    AxesHandle = handles.SourceVideoAxes;
+    Position = get(AxesHandle,'Position');
+    AxesWidth = floor(Position(3));
+    AxesHeight = floor(Position(4));
+    mov = struct('cdata', zeros(AxesHeight, AxesWidth, 3, 'uint8'));
+    h1 = floor((AxesHeight - floor(AxesWidth * videoHeight / videoWidth))/2);
+    h2 = floor(AxesWidth * videoHeight / videoWidth);
+    P = read(VideoMedia, 1);
+    mov.cdata(h1 : h1 + h2 - 1, :, :) = imresize(P,[h2, AxesWidth]);
+    if(get(handles.SourceVideoButton, 'Value') == 1)
+        SourceVideoName = CurrentVideo;
+        axes(handles.SourcePreview);
+        imshow(mov.cdata);
+    else
+        SourceMatteName = CurrentVideo;
+        axes(handles.SourceMattePreview);
+        imshow(mov.cdata);
+    end
+else
+    ListName = get(handles.SourceVideoMenu, 'UserData');
+    CurrentImage = char(ListName(get(handles.SourceVideoMenu,'Value')));
+    P = imread(char(strcat('Images\',CurrentImage)));
+    [x,y,~] = size(P);
+    AxesHandle = handles.SourceVideoAxes;
+    Position = get(AxesHandle,'Position');
+    AxesWidth = floor(Position(3));
+    AxesHeight = floor(Position(4));
+    mov = struct('cdata', zeros(AxesHeight, AxesWidth, 3, 'uint8'));
+     if(x/y < AxesHeight/AxesWidth)
+        h1 = floor((AxesHeight - floor(AxesWidth * x / y))/2);
+        h2 = floor(AxesWidth * x / y);
+        mov.cdata(h1 : h1 + h2 - 1, :, :) = imresize(P,[h2, AxesWidth]);
+    else
+        w1 = floor((AxesWidth - floor(AxesHeight*y/x))/2);
+        w2 = floor(AxesHeight * y / x);
+        mov.cdata(:,w1 : w1 + w2 - 1, :) = imresize(P,[AxesHeight, w2]);
+    end
+    if(get(handles.SourceVideoButton, 'Value') == 1)
+        SourceImageName = CurrentImage;
+        axes(handles.SourcePreview);
+        imshow(mov.cdata);
+    else
+        SourceMatteImageName = CurrentImage;
+        axes(handles.SourceMattePreview);
+        imshow(mov.cdata);
+    end
+end
 axes(AxesHandle);
 imshow(mov.cdata);
-if(get(handles.SourceVideoButton, 'Value') == 1)
-    SourceVideoName = CurrentVideo;
-    axes(handles.SourcePreview);
-    imshow(mov.cdata);
-else
-    SourceMatteName = CurrentVideo;
-    axes(handles.SourceMattePreview);
-    imshow(mov.cdata);
-end
+
 % 将右边的原视频流添加到渲染池中.
 function RightAddVideoButton_Callback(hObject, eventdata, handles)
 global TargetForeVideoName;
 global TargetForeMatteName;
 global TargetBackVideoName;
 global TargetBackMatteName;
-ListName = get(handles.TargetVideoMenu, 'UserData');
-CurrentVideo = char(ListName(get(handles.TargetVideoMenu,'Value')));
-VideoMedia = VideoReader(strcat('Video\StartVideo\',CurrentVideo));
-videoHeight = VideoMedia.Height;
-videoWidth = VideoMedia.Width;
-AxesHandle = handles.TargetVideoAxes;
-Position = get(AxesHandle,'Position');
-AxesWidth = floor(Position(3));
-AxesHeight = floor(Position(4));
-mov = struct('cdata', zeros(AxesHeight, AxesWidth, 3, 'uint8'));
-h1 = floor((AxesHeight - floor(AxesWidth * videoHeight / videoWidth))/2);
-h2 = floor(AxesWidth * videoHeight / videoWidth);
-P = read(VideoMedia, 1);
-mov.cdata(h1 : h1 + h2 - 1, :, :) = imresize(P,[h2, AxesWidth]);
+global TargetForeImageName;
+global TargetForeImageMatteName;
+global TargetBackImageName;
+global TargetBackImageMatteName;
+if(strcmp(get(handles.SwitchButton, 'String'),'SwitchImage'))
+    ListName = get(handles.TargetVideoMenu, 'UserData');
+    CurrentVideo = char(ListName(get(handles.TargetVideoMenu,'Value')));
+    VideoMedia = VideoReader(strcat('Video\StartVideo\',CurrentVideo));
+    videoHeight = VideoMedia.Height;
+    videoWidth = VideoMedia.Width;
+    AxesHandle = handles.TargetVideoAxes;
+    Position = get(AxesHandle,'Position');
+    AxesWidth = floor(Position(3));
+    AxesHeight = floor(Position(4));
+    mov = struct('cdata', zeros(AxesHeight, AxesWidth, 3, 'uint8'));
+    P = read(VideoMedia, 1);
+     if(videoHeight/videoWidth < AxesHeight/AxesWidth)
+        h1 = floor((AxesHeight - floor(AxesWidth * videoHeight / videoWidth))/2);
+        h2 = floor(AxesWidth * videoHeight/videoWidth);
+        mov.cdata(h1 : h1 + h2 - 1, :, :) = imresize(P,[h2, AxesWidth]);
+    else
+        w1 = floor((AxesWidth - floor(AxesHeight* videoWidth / videoHeight))/2);
+        w2 = floor(AxesHeight * videoWidth / videoHeight);
+        mov.cdata(:,w1 : w1 + w2 - 1, :) = imresize(P,[AxesHeight, w2]);
+    end
+    if(get(handles.TargetVideoButton, 'Value') == 1)
+        TargetForeVideoName = CurrentVideo;
+        axes(handles.TargetForePreview);
+        imshow(mov.cdata);
+    elseif(get(handles.TargetMatteButton, 'Value') == 1)
+        TargetForeMatteName = CurrentVideo;
+        axes(handles.TargetForeMattePreview);
+        imshow(mov.cdata);
+    elseif(get(handles.BackVideo, 'Value') == 1)
+        TargetBackVideoName = CurrentVideo;
+        axes(handles.TargetBackPreview);
+        imshow(mov.cdata);
+    else
+        TargetBackMatteName = CurrentVideo;
+        axes(handles.TargetBackMattePreview);
+        imshow(mov.cdata);
+    end
+else
+    ListName = get(handles.TargetVideoMenu, 'UserData');
+    CurrentImage = char(ListName(get(handles.TargetVideoMenu,'Value')));
+    P = imread(char(strcat('Images\',CurrentImage)));
+    [x,y,~] = size(P);
+    AxesHandle = handles.TargetVideoAxes;
+    Position = get(AxesHandle,'Position');
+    AxesWidth = floor(Position(3));
+    AxesHeight = floor(Position(4));
+    mov = struct('cdata', zeros(AxesHeight, AxesWidth, 3, 'uint8'));
+    if(x/y < AxesHeight/AxesWidth)
+        h1 = floor((AxesHeight - floor(AxesWidth * x / y))/2);
+        h2 = floor(AxesWidth * x / y);
+        mov.cdata(h1 : h1 + h2 - 1, :, :) = imresize(P,[h2, AxesWidth]);
+    else
+        w1 = floor((AxesWidth - floor(AxesHeight*y/x))/2);
+        w2 = floor(AxesHeight * y / x);
+        mov.cdata(:,w1 : w1 + w2 - 1, :) = imresize(P,[AxesHeight, w2]);
+    end
+    if(get(handles.TargetVideoButton, 'Value') == 1)
+        TargetForeImageName = CurrentImage;
+        axes(handles.TargetForePreview);
+        imshow(mov.cdata);
+    elseif(get(handles.TargetMatteButton, 'Value') == 1)
+        TargetForeImageMatteName = CurrentImage;
+        axes(handles.TargetForeMattePreview);
+        imshow(mov.cdata);
+    elseif(get(handles.BackVideo, 'Value') == 1)
+        TargetBackImageName = CurrentImage;
+        axes(handles.TargetBackPreview);
+        imshow(mov.cdata);
+    else
+        TargetBackImageMatteName = CurrentImage;
+        axes(handles.TargetBackMattePreview);
+        imshow(mov.cdata);
+    end
+end
 axes(AxesHandle);
 imshow(mov.cdata);
-if(get(handles.TargetVideoButton, 'Value') == 1)
-    TargetForeVideoName = CurrentVideo;
-    axes(handles.TargetForePreview);
-    imshow(mov.cdata);
-elseif(get(handles.TargetMatteButton, 'Value') == 1)
-    TargetForeMatteName = CurrentVideo;
-    axes(handles.TargetForeMattePreview);
-    imshow(mov.cdata);
-elseif(get(handles.BackVideo, 'Value') == 1)
-    TargetBackVideoName = CurrentVideo;
-    axes(handles.TargetBackPreview);
-    imshow(mov.cdata);
-else
-    TargetBackMatteName = CurrentVideo;
-    axes(handles.TargetBackMattePreview);
-    imshow(mov.cdata);
-end
 
 
 % 启动视频流渲染.
@@ -921,7 +1057,7 @@ if(rendering == 0)
     rendering = 1;
     UIStatusSwitch(1, handles);
     set(handles.Render, 'Enable', 'off');
-    pause(0.5);
+    pause(0.1);
     % 初始化渲染状态变量.
     OpenForeMatteReverseSwitch = get(handles.OpenForeMatteReverse, 'Value');
     OpenBackMatteReverseSwitch = get(handles.OpenBackMatteReverse, 'Value');
@@ -935,11 +1071,16 @@ if(rendering == 0)
     TargetBackMatteOpen = get(handles.OpenTargetBackMatte, 'Value');
     TargetSynOpen = get(handles.TargetSyn, 'Value');
     GetAllVideoOutputStatus(handles);
-    ColorTransferWithinVideo();
+    if(strcmp(get(handles.SwitchButton,'String'),'SwitchImage') == 1)
+        ColorTransferWithinVideo();
+    else
+        ColorTransferWitinImage();
+    end
     UIStatusSwitch(0, handles);
     set(handles.Render, 'Enable', 'on');
     rendering = 0;
 end
+
 % 终止视频流渲染.
 function Stop_Callback(hObject, eventdata, handles)
 global rendering;
@@ -1179,3 +1320,48 @@ function VideoSplitDir_Callback(hObject, eventdata, handles)
 winopen('VideoSlices\VideoSplitSlices');
 function VideoRecombineDir_Callback(hObject, eventdata, handles)
 winopen('Video\ResultVideo\RecombineVideo');
+
+
+% 定义内核方法.
+function MethodSwitch(methodName, handles)
+global CoreMethodName;
+if strcmp(methodName, 'ColorGrading') == 1
+    set(handles.ReinhardMethod, 'Value', 0);
+    CoreMethodName = 'ColorGradingMethod';
+elseif strcmp(methodName, 'Reinhard') == 1
+    set(handles.ColorGradingMethod, 'Value', 0);
+    CoreMethodName = 'ReinhardMethod';
+end
+function ColorGradingMethod_Callback(hObject, eventdata, handles)
+MethodSwitch('ColorGrading',handles);
+function ReinhardMethod_Callback(hObject, eventdata, handles)
+MethodSwitch('Reinhard',handles);
+
+function SwitchButton_Callback(hObject, eventdata, handles)
+global StatusBarHandle;
+StatusBarHandle = handles.StatusWindow;
+if(strcmp(get(hObject,'String'), 'SwitchImage') == 1)
+    set(hObject, 'String', 'SwitchVideo');
+    set(handles.SourceVideoButton, 'String', 'SourceImage');
+    set(handles.TargetVideoButton, 'String', 'TargetImage');
+    FillPopMenuImageData(handles.SourceVideoMenu);
+    FillPopMenuImageData(handles.TargetVideoMenu);
+    SwitchSaveNames(handles, 0);
+    ClearListBox(StatusBarHandle);
+    FillPreviewWindow(handles.SourceVideoMenu, handles.SourceVideoAxes, handles, 'left');
+    FillPreviewWindow(handles.TargetVideoMenu, handles.TargetVideoAxes, handles, 'right');
+    set(handles.LeftPlay,'Enable','off');
+    set(handles.RightPlay,'Enable','off');
+else
+    set(hObject, 'String', 'SwitchImage');
+    set(handles.SourceVideoButton, 'String', 'SourceVideo');
+    set(handles.TargetVideoButton, 'String', 'TargetVideo');
+    FillPopMemuData(handles.SourceVideoMenu);
+    FillPopMemuData(handles.TargetVideoMenu);
+    SwitchSaveNames(handles, 1);
+    ClearListBox(StatusBarHandle);
+    FillPreviewWindow(handles.SourceVideoMenu, handles.SourceVideoAxes, handles, 'left');
+    FillPreviewWindow(handles.TargetVideoMenu, handles.TargetVideoAxes, handles, 'right');
+    set(handles.LeftPlay,'Enable','on');
+    set(handles.RightPlay,'Enable','on');
+end

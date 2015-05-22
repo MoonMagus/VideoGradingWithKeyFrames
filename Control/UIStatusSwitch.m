@@ -46,6 +46,8 @@ if(close == 1)
     UiStatus.TargetBackMatteSlices = get(handles.TargetBackMatteSlices, 'Enable');
     UiStatus.SplitVideo = get(handles.SplitVideo, 'Enable');
     UiStatus.Recombine = get(handles.Recombine, 'Enable');
+    UiStatus.ColorGradingMethod = get(handles.ColorGradingMethod, 'Enable');
+    UiStatus.ReinhardMethod = get(handles.ReinhardMethod, 'Enable');
     % 锁定UI为非使能态.
     set(handles.SourceVideoButton, 'Enable', 'off');
     set(handles.SourceMatteButton, 'Enable', 'off');
@@ -105,6 +107,9 @@ if(close == 1)
     set(handles.SplitVideo, 'Enable', 'off');  
     set(handles.Recombine, 'Enable', 'off');  
     set(handles.RebuildVideo, 'Enable', 'off');
+    set(handles.ColorGradingMethod,'Enable','off');
+    set(handles.ReinhardMethod,'Enable','off');
+    set(handles.SwitchButton,'Enable','off');
 else
     set(handles.SourceVideoButton, 'Enable', UiStatus.SourceVideoButtonEnable);
     set(handles.SourceMatteButton, 'Enable', UiStatus.SourceMatteButtonEnable);
@@ -164,4 +169,7 @@ else
     set(handles.SplitVideo, 'Enable', UiStatus.SplitVideo);
     set(handles.Recombine, 'Enable', UiStatus.Recombine);
     set(handles.RebuildVideo, 'Enable', 'on');
+    set(handles.SwitchButton,'Enable','on');
+    set(handles.ColorGradingMethod,'Enable',UiStatus.ColorGradingMethod);
+    set(handles.ReinhardMethod,'Enable',UiStatus.ReinhardMethod);
 end
